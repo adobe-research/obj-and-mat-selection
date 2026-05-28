@@ -1,0 +1,64 @@
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+*.so
+
+# Model weights & checkpoints
+*.pth
+*.pt
+*.bin
+*.safetensors
+weights/
+weights
+pretrained/
+checkpoints/
+work_dirs/
+work_dirs_run/
+
+# Data
+data/
+tmp_data/
+temp_*/
+
+# Logs & outputs
+*.log
+*.out
+logs/
+outputs/
+OUTPUT/
+wandb/
+quick_test_output/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Gradio
+.gradio/
+
+# Misc
+.env
+*.pkl
+batchscript-*

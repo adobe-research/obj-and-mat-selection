@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAOAM — Material Dataset Visualizer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f11;
+    --bg2: #1a1a1f;
+    --bg3: #23232a;
+    --border: #2e2e38;
+    --text: #e2e2e8;
+    --text2: #888896;
+    --accent: #ff641e;
+    --green: #3ecf6a;
+    --blue: #5b9cf6;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  header h1 { font-size: 15px; font-weight: 600; white-space: nowrap; }
+  header span.count { color: var(--text2); font-size: 13px; }
+
+  input[type=text] {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 6px 10px;
+    font-size: 13px;
+    width: 240px;
+    outline: none;
+  }
+  input[type=text]:focus { border-color: var(--accent); }
+
+  label.toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text2);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  main { padding: 20px; }
+
+  details { margin-bottom: 16px; }
+  summary {
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▶"; font-size: 11px; color: var(--text2); transition: transform .15s; }
+  details[open] summary::before { transform: rotate(90deg); }
+  summary .badge {
+    margin-left: auto;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 1px 10px;
+    font-size: 12px;
+    color: var(--text2);
+    font-weight: 400;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 14px;
+    padding-top: 12px;
+  }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text2);
+    font-family: monospace;
+    overflow: hidden;
+  }
+  .card-header span.fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .mat-badge {
+    flex-shrink: 0;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: sans-serif;
+  }
+
+  .images {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+  }
+  .img-panel {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: #000;
+  }
+  .img-panel + .img-panel { border-left: 1px solid var(--border); }
+  .img-panel img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .img-panel .overlay-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    -webkit-mask-image: var(--mask-url);
+    mask-image: var(--mask-url);
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    background: rgba(255, 100, 30, 0.55);
+  }
+  .img-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,.55);
+    color: #fff;
+    font-size: 11px;
+    padding: 3px 8px;
+    text-align: center;
+  }
+
+  .tabs {
+    border-top: 1px solid var(--border);
+  }
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 7px 14px;
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .1s, border-color .1s;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-content { display: none; padding: 10px 14px; }
+  .tab-content.active { display: block; }
+
+  .desc-list { list-style: none; }
+  .desc-list li {
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text);
+  }
+  .desc-list li:last-child { border-bottom: none; }
+  .desc-idx { color: var(--text2); margin-right: 6px; font-size: 11px; }
+
+  .vqa-item { margin-bottom: 10px; }
+  .vqa-item:last-child { margin-bottom: 0; }
+  .vqa-choices { list-style: none; margin-top: 4px; }
+  .vqa-choices li {
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-bottom: 2px;
+    color: var(--text2);
+  }
+  .vqa-choices li.correct { background: rgba(62,207,106,.12); color: var(--green); }
+  .choice-key { font-weight: 700; margin-right: 6px; }
+
+  .empty-msg { color: var(--text2); font-size: 13px; font-style: italic; padding: 4px 0; }
+
+  .error-banner {
+    background: rgba(255,80,60,.12);
+    border: 1px solid rgba(255,80,60,.3);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    color: #ff8070;
+    font-size: 13px;
+  }
+  .error-banner code { font-family: monospace; background: rgba(0,0,0,.3); padding: 1px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MAOAM &mdash; Material Dataset</h1>
+  <span class="count" id="total-count"></span>
+  <input type="text" id="filter-input" placeholder="Filter by filename…">
+  <label class="toggle">
+    <input type="checkbox" id="hide-empty"> Hide entries without annotations
+  </label>
+</header>
+
+<main id="main"></main>
+
+<script>
+'use strict';
+
+const SPLITS = [
+  { key: 'realmat', label: 'RealMat', dir: 'data/realmat' },
+  { key: 'synmat',  label: 'SynMat',  dir: 'data/synmat'  },
+  { key: 'sama',    label: 'SAMa',    dir: 'data/sama'    },
+];
+
+async function loadJson(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText} — ${url}`);
+  return r.json();
+}
+
+function imgPath(dir, sub, fname) {
+  return `${dir}/${sub}/${fname}`;
+}
+
+function buildCard(imgFile, matId, imgDir, descData, vqaData) {
+  const imgFname = resolveImageFile(imgFile, imgDir);
+  const maskFname = resolveMaskFile(imgFile, matId, imgDir);
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.fname = imgFile;
+
+  const descs = descData?.[imgFile]?.[matId]?.descriptions ?? [];
+  const vqas  = vqaData?.[imgFile]?.[matId] ?? [];
+  card.dataset.hasAnnotations = (descs.length || vqas.length) ? '1' : '0';
+
+  const maskUrl = `url('${maskFname}')`;
+
+  card.innerHTML = `
+    <div class="card-header">
+      <span class="fname" title="${imgFile}">${imgFile}</span>
+      <span class="mat-badge">mat ${matId}</span>
+    </div>
+    <div class="images">
+      <div class="img-panel">
+        <img src="${imgFname}" alt="image" loading="lazy">
+        <div class="img-label">Image</div>
+      </div>
+      <div class="img-panel">
+        <img src="${maskFname}" alt="mask" loading="lazy">
+        <div class="img-label">Mask</div>
+      </div>
+      <div class="img-panel" style="background:#000">
+        <img src="${imgFname}" alt="overlay-base" loading="lazy">
+        <div class="overlay-img" style="--mask-url:${maskUrl}"></div>
+        <div class="img-label">Overlay</div>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="descs">Descriptions (${descs.length})</button>
+        <button class="tab-btn" data-tab="vqa">VQA (${vqas.length})</button>
+      </div>
+      <div class="tab-content active" data-panel="descs">${renderDescs(descs)}</div>
+      <div class="tab-content" data-panel="vqa">${renderVqa(vqas)}</div>
+    </div>`;
+
+  card.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      card.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      card.querySelector(`[data-panel="${btn.dataset.tab}"]`).classList.add('active');
+    });
+  });
+
+  return card;
+}
+
+function resolveImageFile(imgFile, imgDir) {
+  const base = imgFile.replace(/\.\w+$/, '');
+  return `${imgDir}/images/${base}.png`;
+}
+
+function resolveMaskFile(imgFile, matId, imgDir) {
+  const base = imgFile.replace(/\.\w+$/, '');
+  return `${imgDir}/masks/${base}_mat${matId}.png`;
+}
+
+function renderDescs(descs) {
+  if (!descs.length) return '<p class="empty-msg">No descriptions.</p>';
+  return `<ul class="desc-list">${descs.map((d, i) =>
+    `<li><span class="desc-idx">${i + 1}.</span>${d}</li>`
+  ).join('')}</ul>`;
+}
+
+function renderVqa(vqas) {
+  if (!vqas.length) return '<p class="empty-msg">No VQA questions.</p>';
+  return vqas.map((q, qi) => `
+    <div class="vqa-item">
+      <ul class="vqa-choices">
+        ${['A','B','C','D'].map(k => `
+          <li class="${q.answer === k ? 'correct' : ''}">
+            <span class="choice-key">${k}.</span>${q[k] ?? ''}
+          </li>`).join('')}
+      </ul>
+    </div>`).join('');
+}
+
+async function buildSplit(split) {
+  const { key, label, dir } = split;
+
+  let descData = null, vqaData = null;
+  const errors = [];
+  try { descData = await loadJson(`${dir}/${key}_mat_loc_desc_val_filtered.json`); }
+  catch (e) { errors.push(e.message); }
+  try { vqaData = await loadJson(`${dir}/${key}_vqa_questions_val_filtered.json`); }
+  catch (e) { errors.push(e.message); }
+
+  const allImages = descData
+    ? Object.keys(descData)
+    : (vqaData ? Object.keys(vqaData) : []);
+
+  const entries = [];
+  for (const imgFile of allImages) {
+    const matIds = new Set([
+      ...Object.keys(descData?.[imgFile] ?? {}),
+      ...Object.keys(vqaData?.[imgFile] ?? {}),
+    ]);
+    for (const matId of matIds) {
+      entries.push({ imgFile, matId });
+    }
+  }
+
+  const details = document.createElement('details');
+  details.open = true;
+  details.dataset.split = key;
+
+  const summary = document.createElement('summary');
+  summary.innerHTML = `${label} <span class="badge">${entries.length} annotations · ${allImages.length} images</span>`;
+  details.appendChild(summary);
+
+  if (errors.length) {
+    const banner = document.createElement('div');
+    banner.className = 'error-banner';
+    banner.innerHTML = `Could not load JSON files — make sure the HTML is served from the repo root and data is at <code>${dir}/</code>.<br><small>${errors.join('<br>')}</small>`;
+    details.appendChild(banner);
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  grid.dataset.entries = JSON.stringify(entries.map(e => e.imgFile));
+
+  for (const { imgFile, matId } of entries) {
+    grid.appendChild(buildCard(imgFile, matId, dir, descData, vqaData));
+  }
+
+  details.appendChild(grid);
+  return { el: details, count: entries.length };
+}
+
+function applyFilter(filterText, hideEmpty) {
+  document.querySelectorAll('.card').forEach(card => {
+    const matchFilter = !filterText || card.dataset.fname.includes(filterText);
+    const matchEmpty  = !hideEmpty  || card.dataset.hasAnnotations === '1';
+    card.style.display = (matchFilter && matchEmpty) ? '' : 'none';
+  });
+
+  document.querySelectorAll('.grid').forEach(grid => {
+    const visible = grid.querySelectorAll('.card:not([style*="display: none"])').length;
+    const details = grid.closest('details');
+    if (details) {
+      const badge = details.querySelector('.badge');
+      if (badge) {
+        const total = grid.querySelectorAll('.card').length;
+        badge.textContent = visible === total
+          ? `${total} annotations`
+          : `${visible} / ${total} annotations`;
+      }
+    }
+  });
+}
+
+async function init() {
+  const main = document.getElementById('main');
+  let totalCount = 0;
+
+  for (const split of SPLITS) {
+    const { el, count } = await buildSplit(split);
+    main.appendChild(el);
+    totalCount += count;
+  }
+
+  document.getElementById('total-count').textContent = `${totalCount} total annotations`;
+
+  const filterInput = document.getElementById('filter-input');
+  const hideEmpty   = document.getElementById('hide-empty');
+
+  filterInput.addEventListener('input', () =>
+    applyFilter(filterInput.value.trim(), hideEmpty.checked));
+  hideEmpty.addEventListener('change', () =>
+    applyFilter(filterInput.value.trim(), hideEmpty.checked));
+}
+
+init().catch(err => {
+  document.getElementById('main').innerHTML =
+    `<div class="error-banner">Failed to initialize: ${err.message}</div>`;
+});
+</script>
+</body>
+</html>
